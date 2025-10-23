@@ -118,6 +118,7 @@ async def role(interaction: discord.Interaction, member: discord.Member, role_na
     Args:
         role_colour(str) : #FFFFFF
     """
+    # Restrict to be used by admin only
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message("Admin only!",ephemeral=True)
     guild = interaction.guild  # Get the server where the command was issued
@@ -141,6 +142,7 @@ async def role(interaction: discord.Interaction, member: discord.Member, role_na
     await interaction.response.send_message(f"{member.mention}, now you are{new_role.mention}!")
 
 bot.run(TOKEN) 
+
 
 
 
