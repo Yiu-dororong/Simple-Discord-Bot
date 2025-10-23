@@ -173,7 +173,7 @@ It takes 3 input variables. Who, what is the role name, what is the colour of th
 
 There are still many functions that one can develop, such as chatbot. Here I will show another approach to make the bot run automatically via n8n.
 
-<img width="1164" height="401" alt="image" src="https://github.com/user-attachments/assets/f195b613-a6c9-4ab0-9b97-b53638abaf48" />
+<img width="1187" height="346" alt="image" src="https://github.com/user-attachments/assets/e95fb660-81f5-43cf-bfbc-4dbe393a0ecc" />
 
 Install discord trigger in n8n, and then set the trigger condition you want. This time for example every time I trigger it, it will connect to an AI and generate an interesting fact, a joke or a beautiful image. n8n will retrieve and bring back to the bot and send it through discord.
 
