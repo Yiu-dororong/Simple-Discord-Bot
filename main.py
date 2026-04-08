@@ -5,7 +5,7 @@ from discord import app_commands
 from keep_alive import keep_alive
 
 import random
-
+## For real situations, please DO NOT hard-code your token and other private information, set it in environment variables instead
 TOKEN = 'your discord bot token' 
 
 keep_alive()
