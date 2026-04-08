@@ -178,3 +178,71 @@ There are still many functions that one can develop, such as chatbot. Here I wil
 Install discord trigger in n8n, and then set the trigger condition you want. This time for example every time I trigger it, it will connect to an AI and generate an interesting fact, a joke or a beautiful image. n8n will retrieve and bring back to the bot and send it through discord.
 
 Please note that there are other objects available like buttons, embeds, modals , but currently I do not need to use them. They can be useful depend on your usage. 
+
+# Updates
+
+I made a new set of commands with database connection which allows persistent storage. Here we use [Turso](https://turso.tech/) for demostration. Turso is a managed service built on top of libSQL, which is itself a fork of the original SQLite.
+
+Setup:
+```
+import os
+import libsql_client
+#Get the personal credentials from Turso
+url = os.getenv("TURSO_DATABASE_URL", "")
+auth_token = os.getenv("TURSO_AUTH_TOKEN", "")
+db = libsql_client.create_client(url=url, auth_token=auth_token)
+```
+
+Let's say we want to create a gamble system.
+
+⚠️ Disclaimer: This game is for entertainment purposes only. It uses 100% virtual currency with no real-world value. No real money is involved, and we do not support or encourage actual gambling.
+
+We first need to design the whole workflow. We have to store the users' information, each gamble and each bet, so this requires 3 tables.
+
+```
+#In the on_ready function
+    try:
+        await db.execute("CREATE TABLE IF NOT EXISTS discord_users (id TEXT PRIMARY KEY, username TEXT, balance INTEGER DEFAULT 0)")
+        await db.execute("CREATE TABLE IF NOT EXISTS gambles (id TEXT PRIMARY KEY, win_rate REAL, deadline INTEGER)")
+        await db.execute("CREATE TABLE IF NOT EXISTS bets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, gamble_id TEXT, amount INTEGER, choice TEXT)")
+        print("Database ready!")
+    except Exception as e:
+        print(f'Error initializing database: {e}')
+```
+
+To keep the description short, we would ask the user to use a command to setup their account with some starting currency.
+
+When creating a gamble, the following line of code is run and create a new entry in the database.
+
+```
+await db.execute("INSERT INTO gambles (id, win_rate, deadline) VALUES (?, ?, ?)", [賭盤id, 是的機率, deadline_ts])
+```
+
+When placing a bet, we first look for if the gamble exists, and the create a entry on bet and reduce the amount from user if valid.
+
+```
+gamble = await db.execute("SELECT win_rate, deadline FROM gambles WHERE id = ?", [賭盤id])
+...
+await db.execute("UPDATE discord_users SET balance = balance - ? WHERE id = ?", [金額, user_id])
+await db.execute("INSERT INTO bets (user_id, gamble_id, amount, choice) VALUES (?, ?, ?, ?)", [user_id, 賭盤id, 金額, 選項])
+```
+
+When announcing the gamble result, we look for the winner and distribute the currency to the users. The first part is done by joining through gamble id and the second part is done by joining user id. Remove all relevant entries lastly.
+
+```
+# Get information (win rate) of the gamble
+gamble = await db.execute("SELECT win_rate FROM gambles WHERE id = ?", [賭盤id])
+# Get all winning bets
+winners = await db.execute("SELECT user_id, amount FROM bets WHERE gamble_id = ? AND choice = ?", [賭盤id, 獲勝選項])
+payouts = []
+for row in winners.rows:
+    uid, amt = row[0], row[1]
+    payout = int(amt * win_rate)
+    await db.execute("UPDATE discord_users SET balance = balance + ? WHERE id = ?", [payout, uid])
+    payouts.append(f"<@{uid}>: 贏得 {payout} (下注 {amt})")
+# Clean up all bets for this gamble and the gamble itself
+await db.execute("DELETE FROM bets WHERE gamble_id = ?", [賭盤id])
+await db.execute("DELETE FROM gambles WHERE id = ?", [賭盤id])
+```
+
+So this completes the lifecycle of how betting interacts with backend database.
